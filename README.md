@@ -5,4 +5,4 @@ Build image for CrimeData webservice
 docker build -t crimedata
 
 Run crimedata image
-docker run --rm -ti -p 30000:3000 crimedata 
+docker run --rm -ti -p 3000:3000 crimedata 
