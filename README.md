@@ -1,4 +1,4 @@
-This is a work in progress. Things may chnage by the hour. 
+This is a work in progress. Things may change by the hour. 
 Use at you own risk.
 
 Build image for CrimeData webservice
