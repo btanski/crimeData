@@ -53,7 +53,7 @@ func NewCrimeDataBook() *CrimeData {
 type WebService interface {
 	GetPath() string
 	WebDelete(params martini.Params) (int, string)
-	WebGet(params martini.Params) (int, string)
+	WebGet(params martini.Params, req *http.Request) (int, string)
 	WebPost(params martini.Params, req *http.Request) (int, string)
 }
 
@@ -83,7 +83,18 @@ func (c *CrimeData) WebDelete(params martini.Params) (int, string) {
 }
 
 //WebGet is the implementation of the WebGet interface
-func (c *CrimeData) WebGet(params martini.Params) (int, string) {
+func (c *CrimeData) WebGet(params martini.Params, req *http.Request) (int, string) {
+	qString := req.URL.Query()
+	if len(qString) > 1 {
+		return http.StatusInternalServerError, "only one query parameter allowed"
+	} else if len(qString) == 1 {
+		jsonResults, err := json.Marshal(c.FilterAllEntries(req))
+		if err != nil {
+			return http.StatusInternalServerError, "internal error"
+		}
+		return http.StatusOK, string(jsonResults)
+	}
+
 	if len(params) == 0 {
 		jsonResults, err := json.Marshal(c.GetAllEntries())
 		if err != nil {
@@ -126,16 +137,7 @@ func (c *CrimeData) WebPost(params martini.Params, req *http.Request) (int, stri
 		return http.StatusBadRequest, "invalid JSON data"
 	}
 
-	fmt.Println(requestBody)
-	bodyString := string(requestBody)
-	fmt.Println(bodyString)
-	fmt.Println()
-	fmt.Println(crimeDataEntry)
-
-	fmt.Println(len(c.CrimeDataBook))
 	c.CrimeDataBook = append(c.CrimeDataBook, &crimeDataEntry)
-	fmt.Println(len(c.CrimeDataBook))
-	fmt.Printf("%T %v\n", crimeDataEntry.ID, crimeDataEntry.ID)
 
 	return http.StatusOK, "new entry created"
 }
@@ -151,6 +153,23 @@ func (c *CrimeData) GetAllEntries() []*CrimeDataEntry {
 	return entries
 }
 
+//FilterAllEntries is used by WebGet to get all the entries
+func (c *CrimeData) FilterAllEntries(req *http.Request) []*CrimeDataEntry {
+	IncidentNumber, OffenseCode := req.FormValue("IncidentNumber"), req.FormValue("OffenseCode")
+	District, OffenseCodeGroup := req.FormValue("District"), req.FormValue("OffenseCodeGroup")
+
+	entries := make([]*CrimeDataEntry, 0)
+	for _, entry := range c.CrimeDataBook {
+		if entry != nil {
+			if IncidentNumber == entry.IncidentNumber || OffenseCode == entry.OffenseCode || District == entry.District || OffenseCodeGroup == entry.OffenseCodeGroup {
+				entries = append(entries, entry)
+			}
+		}
+	}
+
+	return entries
+}
+
 //GetEntry is used be WebGet to get a single Entry
 func (c *CrimeData) GetEntry(id int) (*CrimeDataEntry, error) {
 	if id < 0 || id >= len(c.CrimeDataBook) {
@@ -161,9 +180,7 @@ func (c *CrimeData) GetEntry(id int) (*CrimeDataEntry, error) {
 
 //RemoveAllEntries is used by WebDelete to delete all the entries
 func (c *CrimeData) RemoveAllEntries() {
-	fmt.Println(len(c.CrimeDataBook))
 	c.CrimeDataBook = []*CrimeDataEntry{}
-	fmt.Println(len(c.CrimeDataBook))
 }
 
 //RemoveEntry is used by WebDelete to remove a single entry
@@ -212,8 +229,6 @@ func main() {
 		crimeBook.AddEntry(line)
 
 	}
-	fmt.Println(len(crimeBook.CrimeDataBook))
-	fmt.Println(crimeBook.CrimeDataBook[len(crimeBook.CrimeDataBook)-1])
 
 	martiniClassic := martini.Classic()
 	RegisterWebService(crimeBook, martiniClassic)
