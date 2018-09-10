@@ -5,9 +5,13 @@ This is a work in progress. Things may change by the hour.
 Use at you own risk.
 
 Build image for CrimeData webservice
+
+
 docker build --no-cache -t crimedata
 
 Run crimedata image
+
+
 docker run --rm -ti -p 3000:3000 crimedata 
 
 To access the webservice use a command simular to this:
